@@ -1,0 +1,34 @@
+<mat-toolbar color="primary">
+    <mat-toolbar-row fxLayout="row">
+        <span>{{dialogData.action}} Category</span>
+       <span class="spacer"></span>
+       <button class="mat-dialog-close" mat-icon-button mat-dialog-close>
+           <mat-icon>close</mat-icon>
+       </button>
+    </mat-toolbar-row>
+</mat-toolbar>
+
+
+  
+  <mat-dialog-content class="mat-typography">
+    <form [formGroup]="catgeoryForm" (ngSubmit)="handleSubmit()">
+      <div fxFlex fxLayout="column">
+        <mat-form-field appearance="standard" fxFlex>
+          <mat-label>Name</mat-label>
+          <input matInput formControlName="name" required>
+          <mat-error *ngIf="catgeoryForm.controls.name.touched && catgeoryForm.controls.name.invalid">
+            <span *ngIf="catgeoryForm.controls.name.errors.required">This field is mandatory</span>
+            <span *ngIf="catgeoryForm.controls.name.errors.pattern">This field is invalid</span>
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </form>
+  </mat-dialog-content>
+  
+  <div mat-dialog-actions align="end">
+    <button mat-raised-button color="primary" type="submit" (click)="handleSubmit()" [disabled]="!(catgeoryForm.valid && catgeoryForm.dirty)">
+        <mat-icon>Save</mat-icon>{{action}}
+    </button>
+    <button mat-raised-button color="warn" mat-dialog-close>
+        <mat-icon>cancel</mat-icon>close</button>
+</div>

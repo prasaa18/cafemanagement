@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+
+
+
+  angular-services:
+    image: gfrgt/clientag:latest
+    container_name: angular-container
+    build:
+      context: ./
+    ports:
+      - "80:80"
+
+
+
+
+
+
+
+
