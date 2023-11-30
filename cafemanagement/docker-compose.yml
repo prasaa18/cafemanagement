@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  mysql-standalone:
+    image: gfrgt/mysql:latest
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    container_name: mysql-standalone
+
+
+
+
+  springboot-docker-container:
+    image: gfrgt/backend:latest
+    container_name: springboot-docker-container
+    ports:
+      - 8080:8080
+    build:
+      context: ./
+      dockerfile: Dockerfile
+
+
