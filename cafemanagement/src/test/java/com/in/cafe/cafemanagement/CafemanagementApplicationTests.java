@@ -10,4 +10,8 @@ class CafemanagementApplicationTests {
 	void contextLoads() {
 	}
 
+
+
+
+
 }

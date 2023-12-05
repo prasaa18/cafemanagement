@@ -1,0 +1,110 @@
+pipeline {
+    agent any
+
+    tools {
+        maven "MAVEN3"
+        jdk "OracleJDK17"
+    }
+
+    environment {
+        BACKEND_COMPOSE_FILE = 'cafemanagement/cafemanagement/docker-compose.yml'
+        FRONTEND_COMPOSE_FILE = 'cafemanagement/Frontend/docker-compose.yml'
+        SPRINGBOOT_IMAGE_NAME = "gfrgt/backend:v${BUILD_NUMBER}"
+        ANGULAR_IMAGE_NAME = "gfrgt/clientag:v${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Print Current Directory') {
+            steps {
+                script {
+                    sh 'pwd'
+                    sh 'ls -la'
+                }
+            }
+        }
+
+        stage('Set Docker Hub Credentials') {
+            steps {
+                script {
+                    // Log in to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USERNAME')]) {
+                        sh "docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD"
+                    }
+                }
+            }
+        }
+
+        stage('BUILD') {
+            steps {
+                script {
+                    sh 'mvn clean install -DskipTests'
+                }
+            }
+        }
+
+
+
+        stage('INTEGRATION TEST') {
+            steps {
+                script {
+                    sh 'mvn verify -DskipUnitTests'
+                }
+            }
+        }
+
+        stage('CODE ANALYSIS WITH CHECKSTYLE') {
+            steps {
+                script {
+                    sh 'mvn checkstyle:checkstyle'
+                }
+            }
+            post {
+                success {
+                    echo 'Generated Analysis Result'
+                }
+            }
+        }
+
+        stage('CODE ANALYSIS WITH SONARQUBE') {
+            environment {
+                scannerHome = tool 'sonar4.7'
+            }
+
+            steps {
+                script {
+                    sh """${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=cafemanagement \
+                        -Dsonar.projectName=cafemanagement \
+                        -Dsonar.projectVersion=1.0 \
+                        -Dsonar.sources=src/ \
+                        -Dsonar.tests=src/ \
+                        -Dsonar.junit.reportsPath=target/surefire-reports/ \
+                        -Dsonar.coverage.exclusions=src/test/**"""
+                }
+
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build and Push Backend Docker Images') {
+            steps {
+                script {
+                    sh "docker-compose -f $BACKEND_COMPOSE_FILE build"
+                    sh "docker tag gfrgt/backend:latest $SPRINGBOOT_IMAGE_NAME"
+                    sh "docker push $SPRINGBOOT_IMAGE_NAME"
+                }
+            }
+        }
+
+        stage('Build and Push Frontend Docker Image') {
+            steps {
+                script {
+                    sh "cd Frontend && docker-compose -f $FRONTEND_COMPOSE_FILE build"
+                    sh "docker tag gfrgt/clientag:latest $ANGULAR_IMAGE_NAME"
+                    sh "docker push $ANGULAR_IMAGE_NAME"
+                }
+            }
+        }
+    }
+}

@@ -1,3 +1,4 @@
+
 # Build Stage
 FROM node:14 AS ANGULAR_BUILD
 WORKDIR /app
