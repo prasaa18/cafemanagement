@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+
+
+    stages {
+        stage('Fetch code') {
+            steps {
+                script {
+                    git branch: 'main', url: 'https://github.com/prasaa18/cafemanagement.git'
+                }
+            }
+        }
+
+
+
+        stage('Docker Compose Build and Push') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    script {
+                        // Print the current directory to verify the path
+                        sh 'pwd'
+
+                        // Log in to Docker Hub
+                        sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+
+                        // Build and push using the correct path to docker-compose
+                        sh 'docker-compose -f Frontend/docker-compose.yml build'
+                        sh 'docker-compose -f Frontend/docker-compose.yml push'
+                    }
+                }
+            }
+        }
+    }
+}
