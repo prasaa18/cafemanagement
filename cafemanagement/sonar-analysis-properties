@@ -1,0 +1,6 @@
+sonar.projectKey=prprofile-projects
+sonar.projectName=prprofile-projects
+sonar.projectVersion=1.0
+sonar.sources=src/
+
+sonar.junit.reportsPath=target/surefire-reports/
