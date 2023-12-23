@@ -1,8 +1,6 @@
 pipeline {
     agent any
 
-
-
     stages {
         stage('Fetch code') {
             steps {
@@ -11,8 +9,6 @@ pipeline {
                 }
             }
         }
-
-
 
         stage('Docker Compose Build and Push') {
             steps {
@@ -28,6 +24,14 @@ pipeline {
                         sh 'docker-compose -f Frontend/docker-compose.yml build'
                         sh 'docker-compose -f Frontend/docker-compose.yml push'
                     }
+                }
+            }
+        }
+
+        stage('Deploy to ECS') {
+            steps {
+                withAWS(credentials: 'awscreds', region: 'us-east-2') {
+                    sh 'aws ecs update-service --cluster ${cluster} --service ${service} --force-new-deployment'
                 }
             }
         }
