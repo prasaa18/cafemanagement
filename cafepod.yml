@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vproapp
+  labels:
+    app: vproapp
+spec:
+  containers:
+    - name: appcontainer
+      image: gfrgt/backend:latest
+      ports:
+        - name: vproapp-port
+          containerPort: 8080
+
+    - name: db
+      image: gfrgt/mysql:latest
+      ports:
+        - name: dbport
+          containerPort: 3306
+
+    - name: frontend
+      image: gfrgt/clientag:latest
+      ports:
+        - name: frontendport
+          containerPort: 80
