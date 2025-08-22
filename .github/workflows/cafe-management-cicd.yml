@@ -14,7 +14,7 @@ env:
   AWS_DEFAULT_REGION: us-east-1
   BACKEND_ECR_REPOSITORY: cafe-backend
   FRONTEND_ECR_REPOSITORY: cafe-frontend
-  EKS_CLUSTER_NAME: cafe-cluster
+  EKS_CLUSTER_NAME: vpro-ekss
 
 jobs:
   Backend-Testing:
