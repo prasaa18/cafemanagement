@@ -1,0 +1,66 @@
+namespace: cafe-frontend
+
+frontend:
+  name: frontend
+  image:
+    repository: gfrgt/clientag
+    tag: latest
+    pullPolicy: Always
+  
+  replicaCount: 2
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  
+  probes:
+    readiness:
+      path: /
+      initialDelaySeconds: 10
+      periodSeconds: 5
+    liveness:
+      path: /
+      initialDelaySeconds: 15
+      periodSeconds: 10
+
+nginx:
+  config:
+    backendUrl: http://cafe-management.cafe-backend.svc.cluster.local:8080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: vprofile.bits.work.gd
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  tls: []
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+ingress:
+  enabled: true
+  host: vprofile.bits.work.gd
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/use-regex: "true"

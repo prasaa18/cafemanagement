@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cafe-backend
+description: Helm chart for Cafe Management System Backend
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

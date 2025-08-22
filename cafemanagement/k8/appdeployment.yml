@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cafe-management
+  namespace: cafe-management
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cafe-management
+  template:
+    metadata:
+      labels:
+        app: cafe-management
+    spec:
+      containers:
+      - name: cafe-management
+        image: gfrgt/backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql-standalone:3306/cafemanagement?allowPublicKeyRetrieval=true&useSSL=false
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: cafe-secrets
+              key: DB_USERNAME
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cafe-secrets
+              key: DB_PASSWORD
+        volumeMounts:
+        - name: application-config
+          mountPath: /app/config
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: application-config
+        configMap:
+          name: cafe-config

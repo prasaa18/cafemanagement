@@ -7,6 +7,13 @@ services:
       context: ./db
       dockerfile: Dockerfile
     container_name: mysql-standalone
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=cafemanagement
+      - MYSQL_USER=testuser
+      - MYSQL_PASSWORD=testuser@123
+      - MYSQL_ROOT_PASSWORD=admin123
 
 
 
@@ -15,9 +22,15 @@ services:
     image: gfrgt/backend:latest
     container_name: springboot-docker-container
     ports:
-      - 8080:8080
+      - "8080:8080"
     build:
       context: ./
       dockerfile: Dockerfile
+    depends_on:
+      - mysql-standalone
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-standalone:3306/cafemanagement?allowPublicKeyRetrieval=true&useSSL=false
+      - SPRING_DATASOURCE_USERNAME=testuser
+      - SPRING_DATASOURCE_PASSWORD=testuser@123
 
 
