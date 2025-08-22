@@ -3,7 +3,7 @@ namespace: cafe-frontend
 frontend:
   name: frontend
   image:
-    repository: gfrgt/clientag
+    repository: ${ECR_REGISTRY}/cafe-frontend
     tag: latest
     pullPolicy: Always
   

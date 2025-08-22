@@ -10,6 +10,7 @@ on:
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   AWS_DEFAULT_REGION: us-east-1
   BACKEND_ECR_REPOSITORY: cafe-backend
   FRONTEND_ECR_REPOSITORY: cafe-frontend
@@ -91,29 +92,39 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Set ECR Registry URL
+        run: |
+          echo "ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com" >> $GITHUB_ENV
+
       # Build and push backend image
       - name: Build and push backend image
         working-directory: ./cafemanagement
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t $ECR_REGISTRY/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.sha }} .
-          docker push $ECR_REGISTRY/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.sha }}
-          # Tag as latest also
-          docker tag $ECR_REGISTRY/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.sha }} $ECR_REGISTRY/${{ env.BACKEND_ECR_REPOSITORY }}:latest
-          docker push $ECR_REGISTRY/${{ env.BACKEND_ECR_REPOSITORY }}:latest
+          # Build with docker-compose
+          docker-compose build
+          
+          # Tag and push backend image
+          docker tag cafemanagement-backend ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
+          docker tag ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:latest
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:latest
 
       # Build and push frontend image
       - name: Build and push frontend image
         working-directory: ./Frontend
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t $ECR_REGISTRY/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.sha }} .
-          docker push $ECR_REGISTRY/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.sha }}
-          # Tag as latest also
-          docker tag $ECR_REGISTRY/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.sha }} $ECR_REGISTRY/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
-          docker push $ECR_REGISTRY/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
+          # Build with docker-compose
+          docker-compose build
+          
+          # Tag and push frontend image
+          docker tag frontend-app ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
+          docker tag ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
+        run: |
+
+          echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> $GITHUB_ENV
+          echo "FRONTEND_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
   Deploy-To-EKS:
     needs: Build-And-Push-Images
@@ -144,9 +155,9 @@ jobs:
           chart-path: ./cafemanagement/helm
           namespace: cafe-backend
           values: |
-            backend.image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_ECR_REPOSITORY }}
-            backend.image.tag=${{ github.sha }}
-          name: cafe-backend
+            backend.image.repository=${{ env.ECR_REGISTRY }}/cafe-backend
+            backend.image.tag=${{ github.run_number }}
+          name: cafe-backend-${{ github.run_number }}
 
       # Deploy Frontend
       - name: Deploy Frontend to EKS
@@ -159,6 +170,6 @@ jobs:
           chart-path: ./Frontend/helm
           namespace: cafe-frontend
           values: |
-            frontend.image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_ECR_REPOSITORY }}
-            frontend.image.tag=${{ github.sha }}
-          name: cafe-frontend
+            frontend.image.repository=${{ env.ECR_REGISTRY }}/cafe-frontend
+            frontend.image.tag=${{ github.run_number }}
+          name: cafe-frontend-${{ github.run_number }}
