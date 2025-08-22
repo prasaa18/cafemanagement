@@ -121,7 +121,8 @@ jobs:
           docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
           docker tag ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
           docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
-        run: |
+       
+       
 
           echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> $GITHUB_ENV
           echo "FRONTEND_TAG=$IMAGE_TAG" >> $GITHUB_ENV
