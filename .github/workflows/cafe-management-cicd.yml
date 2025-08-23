@@ -125,6 +125,41 @@ jobs:
           docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
           docker tag ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
           docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
+jobs:
+  Build-And-Push-Images:
+    needs: [Backend-Testing, Frontend-Testing]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      # Build and push backend image
+      - name: Build and push backend image
+        working-directory: ./cafemanagement
+        run: |
+          docker-compose build
+          docker tag cafemanagement-backend ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }}
+          docker push ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }}
+          docker tag ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }} ${{ secrets.REGISTRY }}/cafe-backend:latest
+          docker push ${{ secrets.REGISTRY }}/cafe-backend:latest
+
+      # Build and push frontend image
+      - name: Build and push frontend image
+        working-directory: ./Frontend
+        run: |
+          docker-compose build
+          docker tag frontend-app ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }}
+          docker push ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }}
+          docker tag ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }} ${{ secrets.REGISTRY }}/cafe-frontend:latest
+          docker push ${{ secrets.REGISTRY }}/cafe-frontend:latest
 
   Deploy-To-EKS:
     needs: Build-And-Push-Images
@@ -141,35 +176,4 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
-      - name: Update kube config
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
-
-      # Deploy Backend
-      - name: Deploy Backend to EKS
-        uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
-          chart-path: ./cafemanagement/helm
-          namespace: cafe-backend
-          values: |
-            backend.image.repository=${{ env.ECR_REGISTRY }}/cafe-backend
-            backend.image.tag=${{ github.run_number }}
-          name: cafe-backend-${{ github.run_number }}
-
-      # Deploy Frontend
-      - name: Deploy Frontend to EKS
-        uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
-          chart-path: ./Frontend/helm
-          namespace: cafe-frontend
-          values: |
-            frontend.image.repository=${{ env.ECR_REGISTRY }}/cafe-frontend
-            frontend.image.tag=${{ github.run_number }}
-          name: cafe-frontend-${{ github.run_number }}
+      - name
