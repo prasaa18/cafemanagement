@@ -22,6 +22,7 @@ jobs:
     defaults:
       run:
         working-directory: ./cafemanagement
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,21 +36,20 @@ jobs:
       - name: Run Maven tests
         run: mvn test
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ secrets.BACKEND_SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ secrets.SONAR_ORG }}
-            -Dsonar.host.url=https://sonarcloud.io
+      - name: Run SonarCloud scan
+        run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=${{ secrets.BACKEND_SONAR_PROJECT_KEY }} \
+            -Dsonar.organization=${{ secrets.SONAR_ORG }} \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
   Frontend-Testing:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./Frontend
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,31 +57,36 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '14'
+          node-version: '14'   # ✅ Node.js 14 everywhere
 
       - name: Install dependencies
         run: npm install
 
+      # - name: Run tests
+      #   run: npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless
       - name: Run tests (non-blocking)
-        run: npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless || true
-
+        run: |
+           npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless || true
+      
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+         args: >
+          -Dsonar.projectKey=${{ secrets.FRONTEND_SONAR_PROJECT_KEY }}
+          -Dsonar.organization=${{ secrets.SONAR_ORG }}
+          -Dsonar.sources=src
+          -Dsonar.exclusions=**/node_modules/**,**/*.spec.ts
+          -Dsonar.tests=src
+          -Dsonar.test.inclusions=**/*.spec.ts
+          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ secrets.FRONTEND_SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ secrets.SONAR_ORG }}
-            -Dsonar.sources=src
-            -Dsonar.exclusions=**/node_modules/**,**/*.spec.ts
-            -Dsonar.tests=src
-            -Dsonar.test.inclusions=**/*.spec.ts
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
 
   Build-And-Push-Images:
     needs: [Backend-Testing, Frontend-Testing]
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -98,8 +103,10 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Set ECR Registry URL
-        run: echo "ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com" >> $GITHUB_ENV
+        run: |
+          echo "ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com" >> $GITHUB_ENV
 
+      # Build and push backend image
       - name: Build and push backend image
         working-directory: ./cafemanagement
         run: |
@@ -109,6 +116,7 @@ jobs:
           docker tag ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:latest
           docker push ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:latest
 
+      # Build and push frontend image
       - name: Build and push frontend image
         working-directory: ./Frontend
         run: |
@@ -121,6 +129,7 @@ jobs:
   Deploy-To-EKS:
     needs: Build-And-Push-Images
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -135,6 +144,7 @@ jobs:
       - name: Update kube config
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
 
+      # Deploy Backend
       - name: Deploy Backend to EKS
         uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
         with:
@@ -149,6 +159,7 @@ jobs:
             backend.image.tag=${{ github.run_number }}
           name: cafe-backend-${{ github.run_number }}
 
+      # Deploy Frontend
       - name: Deploy Frontend to EKS
         uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
         with:
