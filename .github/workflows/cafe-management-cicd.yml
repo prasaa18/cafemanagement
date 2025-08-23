@@ -19,7 +19,6 @@ jobs:
     defaults:
       run:
         working-directory: ./cafemanagement
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -46,7 +45,6 @@ jobs:
     defaults:
       run:
         working-directory: ./Frontend
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -76,10 +74,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  Build-And-Push-Images:
-    needs: [Backend-Testing, Frontend-Testing]
+  Build-And-Push-Backend:
+    needs: [Backend-Testing]
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -94,30 +91,40 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Build & push backend
       - name: Build and push backend image
         working-directory: ./cafemanagement
         run: |
-          docker compose build
-          docker tag cafemanagement-backend ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }}
+          docker build -t ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }} .
           docker push ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }}
           docker tag ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }} ${{ secrets.REGISTRY }}/cafe-backend:latest
           docker push ${{ secrets.REGISTRY }}/cafe-backend:latest
 
-      # Build & push frontend
+  Build-And-Push-Frontend:
+    needs: [Frontend-Testing]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
       - name: Build and push frontend image
         working-directory: ./Frontend
         run: |
-          docker compose build
+          docker build -t frontend-app .
           docker tag frontend-app ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }}
           docker push ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }}
           docker tag ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }} ${{ secrets.REGISTRY }}/cafe-frontend:latest
           docker push ${{ secrets.REGISTRY }}/cafe-frontend:latest
 
   Deploy-To-EKS:
-    needs: Build-And-Push-Images
+    needs: [Build-And-Push-Backend, Build-And-Push-Frontend]
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -143,8 +150,9 @@ jobs:
           chart-path: ./cafemanagement/helm
           namespace: cafe-backend
           values: |
-            backend.image.repository=${{ secrets.REGISTRY }}/cafe-backend
-            backend.image.tag=${{ github.run_number }}
+            global:
+              ecrRegistry: ${{ secrets.REGISTRY }}
+              imageTag: ${{ github.run_number }}
           name: cafe-backend-${{ github.run_number }}
 
       # Deploy Frontend
@@ -158,6 +166,8 @@ jobs:
           chart-path: ./Frontend/helm
           namespace: cafe-frontend
           values: |
-            frontend.image.repository=${{ secrets.REGISTRY }}/cafe-frontend
-            frontend.image.tag=${{ github.run_number }}
+            global:
+              ecrRegistry: ${{ secrets.REGISTRY }}
+              imageTag: ${{ github.run_number }}
+              nginx.config.backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
           name: cafe-frontend-${{ github.run_number }}

@@ -1,14 +1,17 @@
 namespace: cafe-frontend
 
+global:
+  ecrRegistry: ""        # Set dynamically via CI/CD
+  imageTag: "latest"     # Set dynamically via CI/CD
+
 frontend:
   name: frontend
   image:
-    repository: ${ECR_REGISTRY}/cafe-frontend
-    tag: latest
+    repository: "{{ .Values.global.ecrRegistry }}/cafe-frontend"
+    tag: "{{ .Values.global.imageTag }}"
     pullPolicy: Always
-  
+
   replicaCount: 2
-  
   resources:
     limits:
       cpu: 200m
@@ -16,12 +19,12 @@ frontend:
     requests:
       cpu: 100m
       memory: 128Mi
-  
+
   service:
     type: ClusterIP
     port: 80
     targetPort: 80
-  
+
   probes:
     readiness:
       path: /
@@ -43,6 +46,7 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   tls: []
   replicaCount: 2
@@ -56,11 +60,3 @@ ingress:
     requests:
       cpu: 100m
       memory: 128Mi
-
-ingress:
-  enabled: true
-  host: vprofile.bits.work.gd
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/use-regex: "true"

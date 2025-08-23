@@ -24,13 +24,13 @@ spec:
         readinessProbe:
           httpGet:
             path: {{ .Values.frontend.probes.readiness.path }}
-            port: 80
+            port: {{ .Values.frontend.service.port }}
           initialDelaySeconds: {{ .Values.frontend.probes.readiness.initialDelaySeconds }}
           periodSeconds: {{ .Values.frontend.probes.readiness.periodSeconds }}
         livenessProbe:
           httpGet:
             path: {{ .Values.frontend.probes.liveness.path }}
-            port: 80
+            port: {{ .Values.frontend.service.port }}
           initialDelaySeconds: {{ .Values.frontend.probes.liveness.initialDelaySeconds }}
           periodSeconds: {{ .Values.frontend.probes.liveness.periodSeconds }}
         volumeMounts:

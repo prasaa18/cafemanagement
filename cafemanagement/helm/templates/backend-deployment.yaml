@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cafe-management
+  name: {{ .Values.backend.name }}
   namespace: {{ .Values.namespace }}
 spec:
   replicas: {{ .Values.backend.replicaCount }}
   selector:
     matchLabels:
-      app: cafe-management
+      app: {{ .Values.backend.name }}
   template:
     metadata:
       labels:
-        app: cafe-management
+        app: {{ .Values.backend.name }}
     spec:
       initContainers:
       - name: wait-for-mysql
-        image: mysql:8.0
-        command: ['sh', '-c', 'until mysql -h mysql-standalone -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do echo waiting for mysql; sleep 2; done']
+        image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+        command: ['sh', '-c', 'until mysql -h {{ .Values.mysql.name }} -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do echo waiting for mysql; sleep 2; done']
         env:
         - name: MYSQL_USER
           valueFrom:
@@ -29,13 +29,13 @@ spec:
               name: cafe-secrets
               key: DB_PASSWORD
       containers:
-      - name: springboot-docker-container
+      - name: springboot-container
         image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
         ports:
         - containerPort: 8080
         env:
         - name: SPRING_DATASOURCE_URL
-          value: jdbc:mysql://mysql-standalone:3306/{{ .Values.mysql.credentials.database }}?allowPublicKeyRetrieval=true&useSSL=false
+          value: jdbc:mysql://{{ .Values.mysql.name }}:3306/{{ .Values.mysql.credentials.database }}?allowPublicKeyRetrieval=true&useSSL=false
         - name: SPRING_DATASOURCE_USERNAME
           valueFrom:
             secretKeyRef:

@@ -1,22 +1,11 @@
-namespace: cafe-management
+namespace: cafe-backend
 
-mysql:
-  image:
-    repository: mysql
-    tag: "8.0"
-  persistence:
-    enabled: true
-    size: 1Gi
-  credentials:
-    database: cafemanagement
-    user: testuser
-    password: testuser@123
-    rootPassword: admin123
-
+# Backend Spring Boot (dynamic)
 backend:
+  name: cafe-backend
   image:
-    repository: ${ECR_REGISTRY}/cafe-backend
-    tag: latest
+    repository: "{{ .Values.global.ecrRegistry }}/cafe-backend"  # dynamic from GitHub Actions
+    tag: "{{ .Values.global.imageTag }}"                           # dynamic from GitHub Actions
   replicaCount: 2
   service:
     type: ClusterIP
@@ -29,10 +18,22 @@ backend:
       cpu: 200m
       memory: 256Mi
 
-ingress:
-  enabled: true
-  host: vprofile.bits.work.gd
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/use-regex: "true"
+# MySQL (static Docker Hub image)
+mysql:
+  name: mysql-standalone
+  image:
+    repository: gfrgt/mysql         # Docker Hub image you already pushed
+    tag: "latest"
+  persistence:
+    enabled: true
+    size: 1Gi
+  credentials:
+    database: cafemanagement
+    user: testuser
+    password: testuser@123
+    rootPassword: admin123
+
+# Global dynamic values for CI/CD
+global:
+  ecrRegistry: ""      # Set dynamically from GitHub Actions
+  imageTag: "latest"   # Set dynamically from GitHub Actions
