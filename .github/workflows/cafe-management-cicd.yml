@@ -74,9 +74,9 @@ jobs:
          args: >
           -Dsonar.projectKey=${{ secrets.FRONTEND_SONAR_PROJECT_KEY }}
           -Dsonar.organization=${{ secrets.SONAR_ORG }}
-          -Dsonar.sources=src
+          -Dsonar.sources=Frontend/src
           -Dsonar.exclusions=**/node_modules/**,**/*.spec.ts
-          -Dsonar.tests=src
+          -Dsonar.tests=Frontend/src
           -Dsonar.test.inclusions=**/*.spec.ts
           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
         env:
