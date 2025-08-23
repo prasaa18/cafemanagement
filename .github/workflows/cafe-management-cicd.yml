@@ -8,9 +8,6 @@ on:
     branches: [ main ]
 
 env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   AWS_DEFAULT_REGION: us-east-1
   BACKEND_ECR_REPOSITORY: cafe-backend
   FRONTEND_ECR_REPOSITORY: cafe-frontend
@@ -57,32 +54,28 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '14'   # ✅ Node.js 14 everywhere
+          node-version: '14'
 
       - name: Install dependencies
         run: npm install
 
-      # - name: Run tests
-      #   run: npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless
       - name: Run tests (non-blocking)
-        run: |
-           npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless || true
-      
+        run: npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless || true
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         with:
-         args: >
-          -Dsonar.projectKey=${{ secrets.FRONTEND_SONAR_PROJECT_KEY }}
-          -Dsonar.organization=${{ secrets.SONAR_ORG }}
-          -Dsonar.sources=Frontend/src
-          -Dsonar.exclusions=**/node_modules/**,**/*.spec.ts
-          -Dsonar.tests=Frontend/src
-          -Dsonar.test.inclusions=**/*.spec.ts
-          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+          args: >
+            -Dsonar.projectKey=${{ secrets.FRONTEND_SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORG }}
+            -Dsonar.sources=Frontend/src
+            -Dsonar.exclusions=**/node_modules/**,**/*.spec.ts
+            -Dsonar.tests=Frontend/src
+            -Dsonar.test.inclusions=**/*.spec.ts
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-
   Build-And-Push-Images:
     needs: [Backend-Testing, Frontend-Testing]
     runs-on: ubuntu-latest
@@ -98,50 +91,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Set ECR Registry URL
-        run: |
-          echo "ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com" >> $GITHUB_ENV
-
-      # Build and push backend image
-      - name: Build and push backend image
-        working-directory: ./cafemanagement
-        run: |
-          docker-compose build
-          docker tag cafemanagement-backend ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
-          docker tag ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:latest
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:latest
-
-      # Build and push frontend image
-      - name: Build and push frontend image
-        working-directory: ./Frontend
-        run: |
-          docker-compose build
-          docker tag frontend-app ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
-          docker tag ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
-jobs:
-  Build-And-Push-Images:
-    needs: [Backend-Testing, Frontend-Testing]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-
-      # Build and push backend image
+      # Build & push backend
       - name: Build and push backend image
         working-directory: ./cafemanagement
         run: |
@@ -151,7 +101,7 @@ jobs:
           docker tag ${{ secrets.REGISTRY }}/cafe-backend:${{ github.run_number }} ${{ secrets.REGISTRY }}/cafe-backend:latest
           docker push ${{ secrets.REGISTRY }}/cafe-backend:latest
 
-      # Build and push frontend image
+      # Build & push frontend
       - name: Build and push frontend image
         working-directory: ./Frontend
         run: |
@@ -176,4 +126,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
-      - name
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
+
+      # Deploy Backend
+      - name: Deploy Backend to EKS
+        uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
+          chart-path: ./cafemanagement/helm
+          namespace: cafe-backend
+          values: |
+            backend.image.repository=${{ secrets.REGISTRY }}/cafe-backend
+            backend.image.tag=${{ github.run_number }}
+          name: cafe-backend-${{ github.run_number }}
+
+      # Deploy Frontend
+      - name: Deploy Frontend to EKS
+        uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
+          chart-path: ./Frontend/helm
+          namespace: cafe-frontend
+          values: |
+            frontend.image.repository=${{ secrets.REGISTRY }}/cafe-frontend
+            frontend.image.tag=${{ github.run_number }}
+          name: cafe-frontend-${{ github.run_number }}
