@@ -57,14 +57,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '14'
+          node-version: '14'   # ✅ Node.js 14 everywhere
 
       - name: Install dependencies
         run: npm install
 
       - name: Run tests
-        run: ng test --no-watch --no-progress --browsers=ChromeHeadless
-
+        run: npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless
 
       - name: Run SonarCloud scan
         run: |
@@ -101,10 +100,7 @@ jobs:
       - name: Build and push backend image
         working-directory: ./cafemanagement
         run: |
-          # Build with docker-compose
           docker-compose build
-          
-          # Tag and push backend image
           docker tag cafemanagement-backend ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
           docker push ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
           docker tag ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:latest
@@ -114,19 +110,11 @@ jobs:
       - name: Build and push frontend image
         working-directory: ./Frontend
         run: |
-          # Build with docker-compose
           docker-compose build
-          
-          # Tag and push frontend image
           docker tag frontend-app ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
           docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }}
           docker tag ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:${{ github.run_number }} ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
           docker push ${{ env.ECR_REGISTRY }}/${{ env.FRONTEND_ECR_REPOSITORY }}:latest
-       
-       
-
-          echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> $GITHUB_ENV
-          echo "FRONTEND_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
   Deploy-To-EKS:
     needs: Build-And-Push-Images
