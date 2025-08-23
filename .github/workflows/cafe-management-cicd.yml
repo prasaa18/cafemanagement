@@ -63,7 +63,8 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI
+        run: ng test --no-watch --no-progress --browsers=ChromeHeadless
+
 
       - name: Run SonarCloud scan
         run: |
