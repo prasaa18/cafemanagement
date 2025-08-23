@@ -67,19 +67,21 @@ jobs:
       - name: Run tests (non-blocking)
         run: |
            npm run test:ci -- --watch=false --progress=false --browsers=ChromeHeadless || true
-    
-      - name: Run SonarCloud scan
+      
+      - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         with:
-          organization: ${{ secrets.SONAR_ORG }}
-          projectKey: ${{ secrets.FRONTEND_SONAR_PROJECT_KEY }}
-          token: ${{ secrets.SONAR_TOKEN }}
-          extraProperties: |
-            sonar.sources=src
-            sonar.exclusions=**/node_modules/**,**/*.spec.ts
-            sonar.tests=src
-            sonar.test.inclusions=**/*.spec.ts
-            sonar.javascript.lcov.reportPaths=coverage/lcov.info
+        args: >
+          -Dsonar.projectKey=${{ secrets.FRONTEND_SONAR_PROJECT_KEY }}
+          -Dsonar.organization=${{ secrets.SONAR_ORG }}
+          -Dsonar.sources=src
+          -Dsonar.exclusions=**/node_modules/**,**/*.spec.ts
+          -Dsonar.tests=src
+          -Dsonar.test.inclusions=**/*.spec.ts
+          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
 
   Build-And-Push-Images:
     needs: [Backend-Testing, Frontend-Testing]
