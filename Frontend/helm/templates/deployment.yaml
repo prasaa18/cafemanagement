@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: angular-container
-        image: "{{ .Values.global.ecrRegistry }}/cafe-backend:{{ .Values.global.imageTag }}"
+        image: "{{ .Values.global.ecrRegistry }}/cafe-frontend:{{ .Values.global.imageTag }}"
         imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
         ports:
         - containerPort: 80
