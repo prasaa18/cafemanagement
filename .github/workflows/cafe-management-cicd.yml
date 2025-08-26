@@ -136,50 +136,44 @@ jobs:
     needs: [Build-And-Push-Backend, Build-And-Push-Frontend]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+     - name: Checkout code
+       uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+     - name: Configure AWS credentials
+       uses: aws-actions/configure-aws-credentials@v4
+       with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
-      - name: Update kube config
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
+     - name: Update kube config
+       run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
 
-      # Deploy Backend
-      - name: Deploy Backend to EKS
-        uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
-          chart-path: ./cafemanagement/helm
-          namespace: cafe-backend
-          values: |
-            global:
-              ecrRegistry: ${{ secrets.REGISTRY }}
-              imageTag: ${{ github.run_number }}
-          release-name: cafe-backend   # ✅ fixed (stable name)
+    # ✅ Deploy Backend
+     - name: Deploy Backend to EKS
+       uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
+       with:
+        cluster-name: ${{ env.EKS_CLUSTER_NAME }}
+        namespace: cafe-backend
+        release-name: cafe-backend
+        chart-path: ./cafemanagement/helm
+        values: |
+          global:
+            ecrRegistry: ${{ secrets.REGISTRY }}
+            imageTag: ${{ github.run_number }}
 
-      # Deploy Frontend
-      - name: Deploy Frontend to EKS
-        uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
-          chart-path: ./Frontend/helm
-          namespace: cafe-frontend
-          values: |
-            global:
-              ecrRegistry: ${{ secrets.REGISTRY }}
-              imageTag: ${{ github.run_number }}
-              nginx:
-                config:
-                  backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
-          release-name: cafe-frontend   # ✅ fixed (stable name)
+    # ✅ Deploy Frontend
+     - name: Deploy Frontend to EKS
+       uses: bitovi/github-actions-deploy-eks-helm@v1.2.0
+       with:
+        cluster-name: ${{ env.EKS_CLUSTER_NAME }}
+        namespace: cafe-frontend
+        release-name: cafe-frontend
+        chart-path: ./Frontend/helm
+        values: |
+          global:
+            ecrRegistry: ${{ secrets.REGISTRY }}
+            imageTag: ${{ github.run_number }}
+            nginx:
+              config:
+                backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
