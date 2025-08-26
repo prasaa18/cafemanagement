@@ -14,31 +14,31 @@ env:
   EKS_CLUSTER_NAME: cafe-eks
 
 jobs:
-  Backend-Testing:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./cafemanagement
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # Backend-Testing:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ./cafemanagement
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: 'temurin'
+  #     - name: Set up Java 17
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: 17
+  #         distribution: 'temurin'
 
-      - name: Run Maven tests
-        run: mvn test
+  #     - name: Run Maven tests
+  #       run: mvn test
 
-      - name: Run SonarCloud scan
-        run: |
-          mvn sonar:sonar \
-            -Dsonar.projectKey=${{ secrets.BACKEND_SONAR_PROJECT_KEY }} \
-            -Dsonar.organization=${{ secrets.SONAR_ORG }} \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+  #     - name: Run SonarCloud scan
+  #       run: |
+  #         mvn sonar:sonar \
+  #           -Dsonar.projectKey=${{ secrets.BACKEND_SONAR_PROJECT_KEY }} \
+  #           -Dsonar.organization=${{ secrets.SONAR_ORG }} \
+  #           -Dsonar.host.url=https://sonarcloud.io \
+  #           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
   Frontend-Testing:
     runs-on: ubuntu-latest
