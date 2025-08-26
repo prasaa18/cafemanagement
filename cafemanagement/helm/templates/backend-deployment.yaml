@@ -14,45 +14,45 @@ spec:
         app: {{ .Values.backend.name }}
     spec:
       initContainers:
-      - name: wait-for-mysql
-        image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
-        command:
-          - sh
-          - -c
-          - |
-            until mysql -h {{ .Values.mysql.name }} \
-              -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do
-              echo "waiting for mysql";
-              sleep 2;
-            done
-        env:
-        - name: MYSQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: cafe-secrets
-              key: DB_USERNAME
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cafe-secrets
-              key: DB_PASSWORD
+        - name: wait-for-mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          command:
+            - sh
+            - -c
+            - |
+              until mysql -h {{ .Values.mysql.name }} \
+                -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do
+                echo "waiting for mysql";
+                sleep 2;
+              done
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cafe-secrets
+                  key: DB_USERNAME
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cafe-secrets
+                  key: DB_PASSWORD
       containers:
-      - name: springboot-container
-        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
-        ports:
-        - containerPort: 8080
-        env:
-        - name: SPRING_DATASOURCE_URL
-          value: jdbc:mysql://{{ .Values.mysql.name }}:3306/{{ .Values.mysql.credentials.database }}?allowPublicKeyRetrieval=true&useSSL=false
-        - name: SPRING_DATASOURCE_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: cafe-secrets
-              key: DB_USERNAME
-        - name: SPRING_DATASOURCE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cafe-secrets
-              key: DB_PASSWORD
-        resources:
-          {{- toYaml .Values.backend.resources | nindent 10 }}
+        - name: springboot-container
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://{{ .Values.mysql.name }}:3306/{{ .Values.mysql.credentials.database }}?allowPublicKeyRetrieval=true&useSSL=false
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cafe-secrets
+                  key: DB_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cafe-secrets
+                  key: DB_PASSWORD
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}

@@ -1,6 +1,5 @@
 namespace: cafe-backend
 
-# Backend Spring Boot (dynamic)
 backend:
   name: cafe-backend
   image:
@@ -18,14 +17,13 @@ backend:
       cpu: 200m
       memory: 256Mi
 
-# MySQL (static Docker Hub image you already pushed with data)
 mysql:
   name: mysql-standalone
   image:
     repository: gfrgt/mysql
     tag: "latest"
   persistence:
-    enabled: true
+    enabled: false   # 👈 disable PVC here to avoid PV issues
     size: 1Gi
   credentials:
     database: cafemanagement
@@ -33,12 +31,10 @@ mysql:
     password: testuser@123
     rootPassword: admin123
 
-# Global dynamic values for CI/CD
 global:
-  ecrRegistry: ""       # set dynamically from GitHub Actions
-  imageTag: "latest"    # set dynamically from GitHub Actions
+  ecrRegistry: ""
+  imageTag: "latest"
 
-# Ingress config
 ingress:
   enabled: false
   host: ""

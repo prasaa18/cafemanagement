@@ -14,32 +14,36 @@ spec:
         app: {{ .Values.mysql.name }}
     spec:
       containers:
-      - name: mysql
-        image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
-        ports:
-        - containerPort: 3306
-        env:
-        - name: MYSQL_DATABASE
-          value: {{ .Values.mysql.credentials.database }}
-        - name: MYSQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: cafe-secrets
-              key: DB_USERNAME
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cafe-secrets
-              key: DB_PASSWORD
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cafe-secrets
-              key: MYSQL_ROOT_PASSWORD
-        volumeMounts:
-        - name: mysql-data
-          mountPath: /var/lib/mysql
+        - name: mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: {{ .Values.mysql.credentials.database }}
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cafe-secrets
+                  key: DB_USERNAME
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cafe-secrets
+                  key: DB_PASSWORD
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cafe-secrets
+                  key: MYSQL_ROOT_PASSWORD
+          {{- if .Values.mysql.persistence.enabled }}
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+          {{- end }}
+      {{- if .Values.mysql.persistence.enabled }}
       volumes:
-      - name: mysql-data
-        persistentVolumeClaim:
-          claimName: mysql-pvc
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+      {{- end }}

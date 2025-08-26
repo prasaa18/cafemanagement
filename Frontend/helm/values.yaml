@@ -37,7 +37,7 @@ frontend:
 
 nginx:
   config:
-    backendUrl: http://cafe-management.cafe-backend.svc.cluster.local:8080
+    backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
 
 ingress:
   enabled: true
@@ -49,14 +49,3 @@ ingress:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   tls: []
-  replicaCount: 2
-  service:
-    type: ClusterIP
-    port: 80
-  resources:
-    limits:
-      cpu: 200m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
