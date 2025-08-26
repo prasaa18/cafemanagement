@@ -163,7 +163,7 @@ jobs:
             global:
               ecrRegistry: ${{ secrets.REGISTRY }}
               imageTag: ${{ github.run_number }}
-          name: cafe-backend   # ✅ fixed (stable name)
+          release-name: cafe-backend   # ✅ fixed (stable name)
 
       # Deploy Frontend
       - name: Deploy Frontend to EKS
@@ -182,4 +182,4 @@ jobs:
               nginx:
                 config:
                   backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
-          name: cafe-frontend   # ✅ fixed (stable name)
+          release-name: cafe-frontend   # ✅ fixed (stable name)
