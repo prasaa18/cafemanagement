@@ -3,6 +3,9 @@ namespace: cafe-frontend
 global:
   ecrRegistry: ""        # Set dynamically via CI/CD
   imageTag: "latest"     # Set dynamically via CI/CD
+  nginx:
+    config:
+      backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
 
 frontend:
   name: frontend
@@ -37,7 +40,38 @@ frontend:
 
 nginx:
   config:
-    backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
+    defaultConf: |
+      server {
+          listen 80;
+          server_name _;
+
+          root /usr/share/nginx/html;
+          index index.html index.htm;
+
+          # Angular SPA routing
+          location / {
+              try_files $uri $uri/ /index.html;
+          }
+
+          # Proxy backend calls under /cafe
+          location /cafe/ {
+              proxy_pass {{ .Values.global.nginx.config.backendUrl }}/;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection 'upgrade';
+              proxy_set_header Host $host;
+              proxy_cache_bypass $http_upgrade;
+          }
+
+          # Optional: error pages
+          error_page 500 502 503 504 /50x.html;
+          location = /50x.html {
+              root /usr/share/nginx/html;
+          }
+
+          access_log /var/log/nginx/angular_app_access.log;
+          error_log /var/log/nginx/angular_app_error.log;
+      }
 
 ingress:
   enabled: true
