@@ -20,7 +20,7 @@ spec:
             - sh
             - -c
             - |
-              until mysql -h {{ .Values.mysql.name }} \
+              until mysql -h {{ .Values.mysql.name }}.{{ .Values.mysql.namespace }}.svc.cluster.local \
                 -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do
                 echo "waiting for mysql";
                 sleep 2;
@@ -43,7 +43,7 @@ spec:
             - containerPort: 8080
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://{{ .Values.mysql.name }}:3306/{{ .Values.mysql.credentials.database }}?allowPublicKeyRetrieval=true&useSSL=false
+              value: jdbc:mysql://{{ .Values.mysql.name }}.{{ .Values.mysql.namespace }}.svc.cluster.local:3306/{{ .Values.mysql.credentials.database }}?allowPublicKeyRetrieval=true&useSSL=false
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
