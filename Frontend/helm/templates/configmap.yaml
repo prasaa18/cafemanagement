@@ -1,8 +1,8 @@
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nginx-config
-  namespace: {{ .Values.namespace }}
 data:
   default.conf: |
     server {
@@ -11,15 +11,23 @@ data:
 
         root /usr/share/nginx/html;
         index index.html index.htm;
-
+ 
         # Angular frontend
         location / {
+            proxy_pass http://cafe-backend.cafe-backend.svc.cluster.local:8080/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
             try_files $uri $uri/ /index.html;
         }
 
         # Proxy backend requests
         location /cafe/ {
-            proxy_pass {{ .Values.global.nginx.config.backendUrl }}/;
+            proxy_pass http://cafe-backend.cafe-backend.svc.cluster.local:8080/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';
@@ -37,3 +45,15 @@ data:
         access_log /var/log/nginx/angular_app_access.log;
         error_log /var/log/nginx/angular_app_error.log;
     }
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: cafe-frontend
+    meta.helm.sh/release-namespace: cafe-frontend
+  creationTimestamp: "2025-08-26T17:16:10Z"
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  name: nginx-config
+  namespace: cafe-frontend
+  resourceVersion: "120171"
+  uid: ff42113c-fbf5-438f-9878-ce9ee38eb8e7
