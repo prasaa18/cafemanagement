@@ -3,8 +3,8 @@ namespace: cafe-backend
 backend:
   name: cafe-backend
   image:
-    repository: "{{ .Values.global.ecrRegistry }}/cafe-backend"
-    tag: "{{ .Values.global.imageTag }}"
+    repository: ""
+    tag: ""
   replicaCount: 2
   service:
     type: ClusterIP

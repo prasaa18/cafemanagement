@@ -38,7 +38,7 @@ spec:
                   key: DB_PASSWORD
       containers:
         - name: springboot-container
-          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          image: "{{ .Values.global.ecrRegistry }}/cafe-backend:{{ .Values.global.imageTag }}"
           ports:
             - containerPort: 8080
           env:
