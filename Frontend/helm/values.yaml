@@ -7,8 +7,8 @@ global:
 frontend:
   name: frontend
   image:
-    repository: "{{ .Values.global.ecrRegistry }}/cafe-frontend"
-    tag: "{{ .Values.global.imageTag }}"
+    repository: ""
+    tag: ""
     pullPolicy: Always
 
   replicaCount: 2
