@@ -131,7 +131,7 @@ jobs:
           docker push ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }}
           docker tag ${{ secrets.REGISTRY }}/cafe-frontend:${{ github.run_number }} ${{ secrets.REGISTRY }}/cafe-frontend:latest
           docker push ${{ secrets.REGISTRY }}/cafe-frontend:latest
-
+  
   Deploy-To-EKS:
    needs: [Build-And-Push-Backend, Build-And-Push-Frontend]
    runs-on: ubuntu-latest
@@ -154,19 +154,20 @@ jobs:
         curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
         helm version
 
-    # ✅ Deploy Backend directly with Helm
+    # ✅ Deploy Backend with Helm
     - name: Deploy Backend
       run: |
         helm upgrade --install cafe-backend ./cafemanagement/helm \
-          -n cafe-backend --create-namespace \
+          --namespace cafe-backend --create-namespace \
           --set global.ecrRegistry=${{ secrets.REGISTRY }} \
           --set global.imageTag=${{ github.run_number }}
 
-    # ✅ Deploy Frontend directly with Helm
+    # ✅ Deploy Frontend with Helm
     - name: Deploy Frontend
       run: |
         helm upgrade --install cafe-frontend ./Frontend/helm \
-          -n cafe-frontend --create-namespace \
+          --namespace cafe-frontend --create-namespace \
           --set global.ecrRegistry=${{ secrets.REGISTRY }} \
           --set global.imageTag=${{ github.run_number }} \
           --set global.nginx.config.backendUrl=http://cafe-backend.cafe-backend.svc.cluster.local:8080
+        
