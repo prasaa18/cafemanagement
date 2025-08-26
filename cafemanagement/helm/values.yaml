@@ -1,5 +1,9 @@
 namespace: cafe-backend
 
+global:
+  ecrRegistry: ""
+  imageTag: "latest"
+
 backend:
   name: cafe-backend
   image:
@@ -21,19 +25,15 @@ mysql:
   name: mysql-standalone
   image:
     repository: gfrgt/mysql
-    tag: "latest"
+    tag: latest
   persistence:
-    enabled: false   # 👈 disable PVC here to avoid PV issues
+    enabled: false
     size: 1Gi
   credentials:
     database: cafemanagement
     user: testuser
     password: testuser@123
     rootPassword: admin123
-
-global:
-  ecrRegistry: ""
-  imageTag: "latest"
 
 ingress:
   enabled: false

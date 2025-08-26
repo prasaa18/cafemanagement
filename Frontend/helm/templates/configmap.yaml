@@ -17,9 +17,9 @@ data:
             try_files $uri $uri/ /index.html;
         }
 
-        # Proxy backend requests (adjust if your HTTP calls have a different base path)
+        # Proxy backend requests
         location /cafe/ {
-            proxy_pass {{ .Values.nginx.config.backendUrl }}/cafe/;
+            proxy_pass {{ .Values.global.nginx.config.backendUrl }}/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';
