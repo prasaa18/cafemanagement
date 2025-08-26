@@ -4,8 +4,8 @@ namespace: cafe-backend
 backend:
   name: cafe-backend
   image:
-    repository: "{{ .Values.global.ecrRegistry }}/cafe-backend"  # dynamic from GitHub Actions
-    tag: "{{ .Values.global.imageTag }}"                           # dynamic from GitHub Actions
+    repository: "{{ .Values.global.ecrRegistry }}/cafe-backend"
+    tag: "{{ .Values.global.imageTag }}"
   replicaCount: 2
   service:
     type: ClusterIP
@@ -18,11 +18,11 @@ backend:
       cpu: 200m
       memory: 256Mi
 
-# MySQL (static Docker Hub image)
+# MySQL (static Docker Hub image you already pushed with data)
 mysql:
   name: mysql-standalone
   image:
-    repository: gfrgt/mysql         # Docker Hub image you already pushed
+    repository: gfrgt/mysql
     tag: "latest"
   persistence:
     enabled: true
@@ -35,5 +35,11 @@ mysql:
 
 # Global dynamic values for CI/CD
 global:
-  ecrRegistry: ""      # Set dynamically from GitHub Actions
-  imageTag: "latest"   # Set dynamically from GitHub Actions
+  ecrRegistry: ""       # set dynamically from GitHub Actions
+  imageTag: "latest"    # set dynamically from GitHub Actions
+
+# Ingress config
+ingress:
+  enabled: false
+  host: ""
+  annotations: {}

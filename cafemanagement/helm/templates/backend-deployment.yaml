@@ -16,7 +16,15 @@ spec:
       initContainers:
       - name: wait-for-mysql
         image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
-        command: ['sh', '-c', 'until mysql -h {{ .Values.mysql.name }} -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do echo waiting for mysql; sleep 2; done']
+        command:
+          - sh
+          - -c
+          - |
+            until mysql -h {{ .Values.mysql.name }} \
+              -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do
+              echo "waiting for mysql";
+              sleep 2;
+            done
         env:
         - name: MYSQL_USER
           valueFrom:
