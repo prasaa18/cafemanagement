@@ -5,7 +5,7 @@ global:
   imageTag: "latest"     # Set dynamically via CI/CD
   nginx:
     config:
-      backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8080
+      backendUrl: http://cafe-backend.cafe-backend.svc.cluster.local:8086
 
 frontend:
   name: frontend

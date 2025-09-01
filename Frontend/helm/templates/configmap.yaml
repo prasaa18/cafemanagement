@@ -24,7 +24,7 @@ data:
 
         # Proxy backend requests
         location /api/ {
-            proxy_pass http://cafe-backend.cafe-backend.svc.cluster.local:8080/;
+            proxy_pass http://cafe-backend.cafe-backend.svc.cluster.local:8086/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';

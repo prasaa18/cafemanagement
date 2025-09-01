@@ -19,7 +19,7 @@ pipeline {
 
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/prasaa18/cafemanagement.git'
+                git branch: 'cicd', url: 'https://github.com/prasaa18/cafemanagement.git'
             }
         }
 
