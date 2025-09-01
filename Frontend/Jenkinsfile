@@ -90,6 +90,7 @@ pipeline {
 
         stage('App Deploy to Docker container') {
             steps {
+                 docker rm -f cafe-frontend || true
                 sh 'docker run -d --name cafe-frontend -p 3000:3000 gfrgt/cafe-frontend:latest'
             }
         }

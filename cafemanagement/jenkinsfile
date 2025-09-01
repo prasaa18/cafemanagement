@@ -93,7 +93,7 @@ pipeline {
             steps {
                 sh '''
                   docker rm -f cafe-backend || true
-                  docker run -d --name cafe-backend -p 8080:8080 ${IMAGE_NAME}
+                  docker run -d --name cafe-backend -p 8086:8086 ${IMAGE_NAME}
                 '''
             }
         }
