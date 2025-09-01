@@ -1,0 +1,123 @@
+pipeline {
+    agent any
+    tools {
+        jdk 'jdk'
+        nodejs 'node14'
+    }
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'main', url: 'https://github.com/prasaa18/cafemanagement.git'
+            }
+        }
+
+        stage("SonarQube Analysis") {
+            steps {
+                dir('Frontend') {   // run scanner in Frontend folder
+                    withSonarQubeEnv('sonarqube') {
+                        sh '''
+                            $SCANNER_HOME/bin/sonar-scanner \
+                            -Dsonar.projectName=cafe-management-frontend \
+                            -Dsonar.projectKey=cafe-management-frontend
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage("Quality Gate") {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqubeId' 
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('Frontend') {
+                    sh "npm install"
+                }
+            }
+        }
+
+        stage('Trivy FS Scan') {
+            steps {
+                sh "trivy fs . > trivyfs.txt"
+            }
+        }
+
+        stage("Docker Build & Push") {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        dir('Frontend') {
+                            sh "docker build -t cafe-frontend ."
+                        }
+                        sh "docker tag cafe-frontend gfrgt/cafe-frontend:latest"
+                        sh "docker push gfrgt/cafe-frontend:latest"
+                    }
+                }
+            }
+        }
+
+        stage('Docker Scout Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh 'docker-scout quickview gfrgt/cafe-frontend:latest'
+                        sh 'docker-scout cves gfrgt/cafe-frontend:latest'
+                        sh 'docker-scout recommendations gfrgt/cafe-frontend:latest'
+                    }
+                }
+            }
+        }
+
+        stage("Trivy - Docker Image Scan") {
+            steps {
+                sh "trivy image gfrgt/cafe-frontend:latest > trivyimage.txt"
+            }
+        }
+
+        stage('App Deploy to Docker container') {
+            steps {
+                sh 'docker run -d --name cafe-frontend -p 3000:3000 gfrgt/cafe-frontend:latest'
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                def buildStatus = currentBuild.currentResult
+                def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Github User'
+                
+                emailext (
+                    subject: "Pipeline ${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: """
+                        <p>This is a Jenkins cafe-management CICD pipeline status.</p>
+                        <p>Project: ${env.JOB_NAME}</p>
+                        <p>Build Number: ${env.BUILD_NUMBER}</p>
+                        <p>Build Status: ${buildStatus}</p>
+                        <p>Started by: ${buildUser}</p>
+                        <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                    """,
+                    to: 'prasadsnaik18@gmail.com',
+                    from: 'prasadsnaik18@gmail.com',
+                    replyTo: 'prasadsnaik18@gmail.com',
+                    mimeType: 'text/html',
+                    attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
+                )
+            }
+        }
+    }
+}

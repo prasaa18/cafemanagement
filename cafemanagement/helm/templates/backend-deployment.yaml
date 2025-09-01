@@ -40,7 +40,7 @@ spec:
         - name: springboot-container
           image: "{{ .Values.global.ecrRegistry }}/cafe-backend:{{ .Values.global.imageTag }}"
           ports:
-            - containerPort: 8080
+            - containerPort: 8086
           env:
             - name: SPRING_DATASOURCE_URL
               value: jdbc:mysql://{{ .Values.mysql.name }}.{{ .Values.namespace }}.svc.cluster.local:3306/{{ .Values.mysql.credentials.database }}?allowPublicKeyRetrieval=true&useSSL=false

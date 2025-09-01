@@ -1,58 +1,58 @@
-pipeline {
-    agent any
-    tools {
-        maven "MAVEN3"
-        jdk "OracleJDK17"
-    }
-    stages {
-        stage('Fetch code') {
-            steps {
-                script {
-                    git branch: 'main', url: 'https://github.com/prasaa18/cafemanagement.git'
-                }
-            }
-        }
+// pipeline {
+//     agent any
+//     tools {
+//         maven "MAVEN3"
+//         jdk "OracleJDK17"
+//     }
+//     stages {
+//         stage('Fetch code') {
+//             steps {
+//                 script {
+//                     git branch: 'main', url: 'https://github.com/prasaa18/cafemanagement.git'
+//                 }
+//             }
+//         }
 
-        stage('Build') {
-            steps {
-                script {
-                    sh 'cd cafemanagement && mvn clean install -DskipTests'
-                }
-            }
-        }
+//         stage('Build') {
+//             steps {
+//                 script {
+//                     sh 'cd cafemanagement && mvn clean install -DskipTests'
+//                 }
+//             }
+//         }
 
-        stage('Checkstyle Analysis') {
-            steps {
-                script {
-                    sh 'cd cafemanagement && mvn checkstyle:checkstyle'
-                }
-            }
-        }
+//         stage('Checkstyle Analysis') {
+//             steps {
+//                 script {
+//                     sh 'cd cafemanagement && mvn checkstyle:checkstyle'
+//                 }
+//             }
+//         }
 
-        stage('Docker Compose Build and Push') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                    script {
-                        // Print the current directory to verify the path
-                        sh 'pwd'
+//         stage('Docker Compose Build and Push') {
+//             steps {
+//                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+//                     script {
+//                         // Print the current directory to verify the path
+//                         sh 'pwd'
 
-                        // Log in to Docker Hub
-                        sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+//                         // Log in to Docker Hub
+//                         sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
 
-                        // Build and push using the correct path to docker-compose
-                        sh 'docker-compose -f cafemanagement/docker-compose.yml build'
-                        sh 'docker-compose -f cafemanagement/docker-compose.yml push'
-                    }
-                }
-            }
-        }
+//                         // Build and push using the correct path to docker-compose
+//                         sh 'docker-compose -f cafemanagement/docker-compose.yml build'
+//                         sh 'docker-compose -f cafemanagement/docker-compose.yml push'
+//                     }
+//                 }
+//             }
+//         }
 
-        stage('Deploy to ECS') {
-            steps {
-                withAWS(credentials: 'awscreds', region: 'us-east-2') {
-                    sh 'aws ecs update-service --cluster ${cluster} --service ${service} --force-new-deployment'
-                }
-            }
-        }
-    }
-}
+//         stage('Deploy to ECS') {
+//             steps {
+//                 withAWS(credentials: 'awscreds', region: 'us-east-2') {
+//                     sh 'aws ecs update-service --cluster ${cluster} --service ${service} --force-new-deployment'
+//                 }
+//             }
+//         }
+//     }
+// }

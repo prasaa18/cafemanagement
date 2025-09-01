@@ -1,0 +1,127 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk'              // JDK configured in Jenkins
+        maven 'MAVEN3'         // Maven tool configured in Jenkins
+    }
+
+    environment {
+        IMAGE_NAME = "gfrgt/cafe-backend:latest"
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'main', url: 'https://github.com/prasaa18/cafemanagement.git'
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                dir('cafemanagement') {
+                    sh "mvn clean install -DskipTests"
+                }
+            }
+        }
+
+        stage("SonarQube Analysis") {
+            steps {
+                dir('cafemanagement') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh "mvn sonar:sonar -Dsonar.projectKey=cafe-management-backend -Dsonar.projectName=cafe-management-backend"
+                    }
+                }
+            }
+        }
+
+        stage("Quality Gate") {
+            steps {
+                script {
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: true, credentialsId: 'sonarqubeId'
+                    }
+                }
+            }
+        }
+
+        stage('Trivy FS Scan') {
+            steps {
+                sh "trivy fs cafemanagement > trivyfs-backend.txt || true"
+            }
+        }
+
+        stage("Docker Build & Push") {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        dir('cafemanagement') {
+                            sh "docker build -t cafe-backend ."
+                        }
+                        sh "docker tag cafe-backend ${IMAGE_NAME}"
+                        sh "docker push ${IMAGE_NAME}"
+                    }
+                }
+            }
+        }
+
+        stage('Docker Scout Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh "docker-scout quickview ${IMAGE_NAME} || true"
+                        sh "docker-scout cves ${IMAGE_NAME} || true"
+                        sh "docker-scout recommendations ${IMAGE_NAME} || true"
+                    }
+                }
+            }
+        }
+
+        stage("Trivy - Docker Image Scan") {
+            steps {
+                sh "trivy image ${IMAGE_NAME} > trivyimage-backend.txt || true"
+            }
+        }
+
+        stage('App Deploy to Docker container') {
+            steps {
+                sh '''
+                  docker rm -f cafe-backend || true
+                  docker run -d --name cafe-backend -p 8080:8080 ${IMAGE_NAME}
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                def buildStatus = currentBuild.currentResult
+                def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'GitHub Trigger'
+
+                emailext (
+                    subject: "Pipeline ${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: """
+                        <p>This is a Jenkins cafe-management-backend CI/CD pipeline status.</p>
+                        <p><b>Project:</b> ${env.JOB_NAME}</p>
+                        <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
+                        <p><b>Build Status:</b> ${buildStatus}</p>
+                        <p><b>Started by:</b> ${buildUser}</p>
+                        <p><b>Build URL:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                    """,
+                    to: 'prasadsnaik18@gmail.com',
+                    from: 'prasadsnaik18@gmail.com',
+                    replyTo: 'prasadsnaik18@gmail.com',
+                    mimeType: 'text/html',
+                    attachmentsPattern: 'trivyfs-backend.txt,trivyimage-backend.txt'
+                )
+            }
+        }
+    }
+}
