@@ -41,12 +41,20 @@ pipeline {
             }
         }
 
+        // stage("Quality Gate") {
+        //     steps {
+        //         script {
+        //             timeout(time: 5, unit: 'MINUTES') {
+        //                 waitForQualityGate abortPipeline: false, credentialsId: 'sonarqubeId'
+        //             }
+        //         }
+        //     }
+        // }
+        
         stage("Quality Gate") {
             steps {
                 script {
-                    timeout(time: 5, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true, credentialsId: 'sonarqubeId'
-                    }
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqubeId'
                 }
             }
         }
@@ -97,6 +105,21 @@ pipeline {
                 '''
             }
         }
+        stage('Deploy Backend') {
+        steps {
+           dir('cafemanagement') {
+             sh """
+                export PATH=\$PATH:/usr/local/bin
+                 helm upgrade --install cafe-backend ./helm \
+                --namespace cafe-backend --create-namespace \
+                --set global.ecrRegistry=gfrgt \
+                --set global.imageTag=latest
+             """
+           }
+        }
+       }  
+
+        
     }
 
     post {

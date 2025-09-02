@@ -6,6 +6,7 @@ pipeline {
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
     }
     stages {
         stage('Clean Workspace') {
@@ -22,7 +23,7 @@ pipeline {
 
         stage("SonarQube Analysis") {
             steps {
-                dir('Frontend') {   // run scanner in Frontend folder
+                dir('Frontend') {
                     withSonarQubeEnv('sonarqube') {
                         sh '''
                             $SCANNER_HOME/bin/sonar-scanner \
@@ -37,7 +38,7 @@ pipeline {
         stage("Quality Gate") {
             steps {
                 script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqubeId' 
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqubeId'
                 }
             }
         }
@@ -88,10 +89,18 @@ pipeline {
             }
         }
 
-        stage('App Deploy to Docker container') {
+        stage('Deploy Frontend with Helm') {
             steps {
-                 docker rm -f cafe-frontend || true
-                sh 'docker run -d --name cafe-frontend -p 3000:3000 gfrgt/cafe-frontend:latest'
+                dir('Frontend') {
+                    sh """
+                      export PATH=\$PATH:/usr/local/bin
+                      helm upgrade --install cafe-frontend ./helm \
+                        --namespace cafe-frontend --create-namespace \
+                        --set global.ecrRegistry=gfrgt \
+                        --set global.imageTag=latest \
+                        --set global.nginx.config.backendUrl=http://cafe-backend.cafe-backend.svc.cluster.local:8086
+                    """
+                }
             }
         }
     }
@@ -101,7 +110,7 @@ pipeline {
             script {
                 def buildStatus = currentBuild.currentResult
                 def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Github User'
-                
+
                 emailext (
                     subject: "Pipeline ${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                     body: """
